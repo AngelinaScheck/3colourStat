@@ -252,6 +252,8 @@ function Nero()
         end
     end
 
+    %added by AS 09/2016: Option for import of tirfAnalaysis
+    %data for 3 colour experiment statistics (case6)
     function filePopupClick(source,callbackdata)
         choice = get(source, 'value');
         set(source, 'value', 1);           
@@ -268,6 +270,9 @@ function Nero()
                 resetFocus(window);                 
             case 5
                 saveClick(source,callbackdata);
+            case 6
+                importClick(source,callbackdata);
+                resetFocus(window);
         end              
     end
 
@@ -282,7 +287,9 @@ function Nero()
                 fretPerMolClick(source,callbackdata);                
             case 5
                 exportTraceClick(source, callbackdata);
-                resetFocus(window);                  
+                resetFocus(window);  
+            case 6
+                histogramsClick(source,callbackdata);
         end       
         set(source, 'value', 1);        
     end
@@ -302,6 +309,23 @@ function Nero()
                 % Plot selected mol
                 plotMol(currentMol);
             case 2
+                if (isempty(selectedMols))
+                    msgbox('There are no molecules selected. Nothing to display.');
+                    set(source, 'value', 1);                    
+                else                                       
+                    selected = selectedMols(1);
+                    currentSelectedMol = 1;
+                    set(molSlider, 'value', selected);        
+                    set(molEdit, 'string', num2str(selected));
+                    currentMol = selected;
+                    % Update include and min/max values for selected mol
+                    set(minEdit, 'String', num2str(NeroData.mols{currentMol}.min));
+                    set(maxEdit, 'String', num2str(NeroData.mols{currentMol}.max)); 
+                    set(include, 'Value', NeroData.mols{currentMol}.include);
+                    % Plot selected mol
+                    plotMol(currentMol);
+                end
+            case 6 %AS 21/09/16: not altered yet, only added
                 if (isempty(selectedMols))
                     msgbox('There are no molecules selected. Nothing to display.');
                     set(source, 'value', 1);                    
@@ -340,7 +364,8 @@ function Nero()
         end        
         
         % Show file loading dialog
-        [filename, pathname, filetype] = uigetfile({'*.fitResult.mat','(Preferred) TwoTone output files (*.fitResult.mat)'; '*.v2.mat', 'TwoTone v2 output files (*.v2.mat)'},'Choose TwoTone file', 'MultiSelect', 'on');
+        %AS: Tirf3Analysis output is now a possible option
+        [filename, pathname, filetype] = uigetfile({'*.fitResult.mat','(Preferred) TwoTone output files (*.fitResult.mat)'; '*.v2.mat', 'TwoTone v2 output files (*.v2.mat)'; '*.fit3Result.mat', 'Tirf3Analysis output files (*.fit3Result.mat)'},'Choose TwoTone file', 'MultiSelect', 'on');
 
         % User pressed cancel
         if (isequal(filename, 0))
@@ -360,10 +385,13 @@ function Nero()
         end
         
         % Load data into input data
+        %AS: filetype 3 for tirf3 analysis
         if (filetype == 1)
             NeroData.in = loadData(NeroData.in, filename, pathname);
         elseif (filetype == 2)
             NeroData.in = loadDataV2(NeroData.in, filename, pathname);
+        elseif (filetype == 3)
+            NeroData.in = loadDataTirf3(NeroData.in, filename, pathname);
         end
         % Extract plot data from input data
         NeroData.mols = loadMols(NeroData.in, NeroData.mols);
